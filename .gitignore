@@ -1,0 +1,8 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/Digital Signature test/bin/Debug/net8.0
+/Digital Signature test/obj
+/.vs/Digital Signature test/CopilotIndices/17.12.38.29086
+/Digital Signature test/wwwroot/lib

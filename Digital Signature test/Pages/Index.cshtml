@@ -1,0 +1,340 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Digital Signature";
+}
+
+@* <div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Digital Signature</h3>
+                </div>
+                <div class="card-body">
+                    <canvas id="signatureCanvas" width="600" height="200" style="border: 1px solid #ccc;"></canvas>
+                    <div class="mt-3">
+                        <button class="btn btn-primary" onclick="saveSignature()">Save Signature</button>
+                        <button class="btn btn-secondary" onclick="clearSignature()">Clear</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let canvas = document.getElementById('signatureCanvas');
+        let ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+
+        // Set up canvas
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 2;
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+
+        // Mouse event listeners
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+
+        // Touch event listeners
+        canvas.addEventListener('touchstart', handleTouchStart);
+        canvas.addEventListener('touchmove', handleTouchMove);
+        canvas.addEventListener('touchend', stopDrawing);
+
+        function startDrawing(e) {
+            isDrawing = true;
+            [lastX, lastY] = getCoordinates(e);
+        }
+
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousedown', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            canvas.dispatchEvent(mouseEvent);
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousemove', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            canvas.dispatchEvent(mouseEvent);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+
+            const [currentX, currentY] = getCoordinates(e);
+
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(currentX, currentY);
+            ctx.stroke();
+
+            [lastX, lastY] = [currentX, currentY];
+        }
+
+        function getCoordinates(e) {
+            const rect = canvas.getBoundingClientRect();
+            return [
+                e.clientX - rect.left,
+                e.clientY - rect.top
+            ];
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        function clearSignature() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function saveSignature() {
+            const signatureData = {
+                signatureImage: canvas.toDataURL(),
+                createdAt: new Date()
+            };
+
+            fetch('/api/signature', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(signatureData)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    alert('Signature saved successfully');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error saving signature');
+                });
+        }
+    </script>
+} *@
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Welcome</h3>
+                </div>
+                <div class="card-body">
+                    <button type="button" class="btn btn-primary" onclick="openSignatureDialog()">
+                        Add Digital Signature
+                    </button>
+
+                    <div id="signatureDisplay" class="mt-4" style="display: none;">
+                        <h4>Your Digital Signature</h4>
+                        <img id="signatureImage" alt="Your Signature" class="img-fluid" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Signature Modal -->
+<div class="modal fade" id="signatureModal" tabindex="-1" aria-labelledby="signatureModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="signatureModalLabel">Add Digital Signature</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <canvas id="signatureCanvas" width="700" height="200" style="border: 1px solid #ccc;"></canvas>
+                <div id="statusMessage" class="mt-2"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="clearSignature()">Clear</button>
+                <button type="button" class="btn btn-primary" onclick="saveSignature()">Save Signature</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let canvas, ctx;
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+        let signatureModal;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // Initialize Bootstrap modal
+            signatureModal = new bootstrap.Modal(document.getElementById('signatureModal'));
+
+            // Initialize canvas
+            canvas = document.getElementById('signatureCanvas');
+            ctx = canvas.getContext('2d');
+
+            // Set up canvas
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+
+            // Add event listeners
+            setupEventListeners();
+
+            // Load existing signature if any
+            loadSignature();
+        });
+
+        function setupEventListeners() {
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+
+            // Touch events
+            canvas.addEventListener('touchstart', handleTouchStart);
+            canvas.addEventListener('touchmove', handleTouchMove);
+            canvas.addEventListener('touchend', stopDrawing);
+        }
+
+        function openSignatureDialog() {
+            clearSignature();
+            signatureModal.show();
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            [lastX, lastY] = getCoordinates(e);
+        }
+
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousedown', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            canvas.dispatchEvent(mouseEvent);
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousemove', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            canvas.dispatchEvent(mouseEvent);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+
+            const [currentX, currentY] = getCoordinates(e);
+
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(currentX, currentY);
+            ctx.stroke();
+
+            [lastX, lastY] = [currentX, currentY];
+        }
+
+        function getCoordinates(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX || e.touches[0].clientX;
+            const y = e.clientY || e.touches[0].clientY;
+            return [
+                x - rect.left,
+                y - rect.top
+            ];
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        function clearSignature() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            document.getElementById('statusMessage').innerHTML = '';
+        }
+
+        function showStatus(message, isError = false) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.className = `alert ${isError ? 'alert-danger' : 'alert-success'} mt-2`;
+            statusDiv.innerHTML = message;
+        }
+
+        async function saveSignature() {
+            try {
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const pixels = imageData.data;
+                const isCanvasBlank = pixels.every(pixel => pixel === 0);
+
+                if (isCanvasBlank) {
+                    showStatus('Please draw a signature before saving.', true);
+                    return;
+                }
+
+                const signatureData = {
+                    signatureImage: canvas.toDataURL(),
+                    createdAt: new Date().toISOString()
+                };
+
+                const response = await fetch('/api/signature', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(signatureData)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showStatus(data.message);
+                    setTimeout(() => {
+                        signatureModal.hide();
+                        loadSignature();
+                    }, 1000);
+                } else {
+                    showStatus(data.message || 'Error saving signature', true);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus('Error saving signature: ' + error.message, true);
+            }
+        }
+
+        async function loadSignature() {
+            try {
+                const response = await fetch('/api/signature');
+                const data = await response.json();
+
+                const signatureDisplay = document.getElementById('signatureDisplay');
+                const signatureImage = document.getElementById('signatureImage');
+
+                if (data.success) {
+                    signatureImage.src = data.signature;
+                    signatureDisplay.style.display = 'block';
+                } else {
+                    signatureDisplay.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error loading signature:', error);
+            }
+        }
+    </script>
+}
